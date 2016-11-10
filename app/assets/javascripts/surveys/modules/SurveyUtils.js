@@ -5,7 +5,7 @@ const Utils = {
       question_id: params[0],
       operator: params[1],
       value: params[2].trim().split(' ').join('_'),
-      multi: params[3] === 'multi'
+      multi: (params[3])
     });
   },
 
