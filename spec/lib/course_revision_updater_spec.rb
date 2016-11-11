@@ -44,7 +44,7 @@ describe CourseRevisionUpdater do
 
   describe '.import_new_revisions' do
     context 'when the course is not current but "needs_update" is true' do
-      let(:course) { create(:course, start: '2016-03-20', end: '2016-03-31', needs_update: true) }
+      let(:course) { create(:course, start: '2015-03-20', end: '2015-03-31', needs_update: true) }
       let(:user) { create(:user) }
       let!(:student) { create(:courses_user, user_id: user.id, course_id: course.id) }
 
@@ -53,6 +53,7 @@ describe CourseRevisionUpdater do
           .to receive(:update_revisions_for_relevant_wikis)
         expect(Course.current).not_to include(course)
         CourseRevisionUpdater.import_new_revisions
+
         expect(course.reload.needs_update).to eq(false)
       end
     end

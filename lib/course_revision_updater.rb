@@ -10,10 +10,7 @@ class CourseRevisionUpdater
     courses = [courses] if courses.is_a? Course
     courses ||= default_courses_to_update
     courses.each do |course|
-      course.update_attribute(:needs_update, false)
-      next if course.students.empty?
-      new(course).update_revisions_for_relevant_wikis
-      ArticlesCourses.update_from_course(course)
+      CourseRevisionUpdateWorker.schedule_revision_import(course: course)
     end
   end
 
