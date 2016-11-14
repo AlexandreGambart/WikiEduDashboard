@@ -1,9 +1,20 @@
 # frozen_string_literal: true
 require 'rails_helper'
 
+# This lets us switch between Poltergeist and Selenium without changing the spec.
+# Some .click actions don't work on Poltergeist because of overlapping elements,
+# but .trigger('click') is only available in Poltergeist.
+def omniclick(node)
+  if Capybara.current_driver == :poltergeist
+    node.trigger('click')
+  else
+    node.click
+  end
+end
+
 describe 'cloning a course', js: true do
   before do
-    Capybara.current_driver = :poltergeist
+    Capybara.current_driver = :selenium
     page.current_window.resize_to(1920, 1920)
     stub_oauth_edit
   end
@@ -43,6 +54,7 @@ describe 'cloning a course', js: true do
   let(:term) { 'Spring2016' }
   let(:subject) { 'Advanced Foo' }
 
+
   it 'copies relevant attributes of an existing course' do
     login_as user, scope: :user, run_callbacks: false
     visit root_path
@@ -55,10 +67,10 @@ describe 'cloning a course', js: true do
     expect(page).to have_content 'Course Successfully Cloned'
 
     # interact_with_clone_form
-    find('input#course_term').click
-    fill_in 'course_term', with: term
-    fill_in 'course_subject', with: subject
     within '#details_column' do
+      fill_in 'course_term', with: term
+      fill_in 'course_subject', with: subject
+
       find('input#course_start').click
       find('div.DayPicker-Day', text: course_start).click
       find('input#course_end').click
@@ -68,11 +80,11 @@ describe 'cloning a course', js: true do
       find('input#timeline_end').click
       find('div.DayPicker-Day', text: timeline_end).click
     end
-    find('attr', text: 'MO').trigger('click')
-    find('attr', text: 'WE').trigger('click')
+    omniclick find('attr', text: 'MO')
+    omniclick find('attr', text: 'WE')
     expect(page).to have_button('Save New Course', disabled: true)
     find('input[type="checkbox"]').click
-    expect(page).not_to have_button('Save New Course', disabled: true)
+    expect(page).to have_button('Save New Course', disabled: false)
     click_button 'Save New Course'
 
     expect(page).to have_current_path("/courses/OriginalSchool/CourseToClone_(#{term})")
