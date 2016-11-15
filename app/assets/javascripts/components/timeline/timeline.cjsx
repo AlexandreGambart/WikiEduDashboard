@@ -118,8 +118,8 @@ Timeline = React.createClass(
     if @props.loading
       return <Loading />
 
-    week_components = []
-    i = 0
+    weekComponents = []
+    weekCalendarIndex = 0
 
     @props.weeks.sort (a, b) ->
       a.order - b.order
@@ -136,34 +136,34 @@ Timeline = React.createClass(
 
     # For each week, first insert an extra empty week for each week with empty
     # week meetings, which indicates a blackout week. Then insert the week itself.
-    # The index 'i' represents the zero-index week number; both empty and non-empty
+    # The index 'weekCalendarIndex' represents the zero-index week number; both empty and non-empty
     # weeks are included in this numbering scheme.
     @props.weeks.forEach (week, weekIndex) =>
-      while @props.week_meetings[i] == '()'
-        week_components.push (
-          <div key={"empty-week-#{i}"}>
-            <a className="timeline__anchor" name={"week-#{i + 1}"} />
+      while @props.week_meetings[weekCalendarIndex] == '()'
+        weekComponents.push (
+          <div key={"empty-week-#{weekCalendarIndex}"}>
+            <a className="timeline__anchor" name={"week-#{weekCalendarIndex + 1}"} />
             <EmptyWeek
               course={@props.course}
               edit_permissions={@props.edit_permissions}
-              index={i + 1}
+              index={weekCalendarIndex + 1}
               timeline_start={@props.course.timeline_start}
               timeline_end={@props.course.timeline_end}
             />
           </div>
         )
-        i++
+        weekCalendarIndex++
 
-      week_components.push (
+      weekComponents.push (
         <div key={week.id}>
-          <a className="timeline__anchor" name={"week-#{i + 1}"} />
+          <a className="timeline__anchor" name={"week-#{weekCalendarIndex + 1}"} />
           <Week
             week={week}
-            index={i + 1}
+            index={weekCalendarIndex + 1}
             reorderable={@props.reorderable}
             blocks={BlockStore.getBlocksInWeek(week.id)}
             deleteWeek={@deleteWeek.bind(this, week.id)}
-            meetings={@props.week_meetings[i]}
+            meetings={@props.week_meetings[weekCalendarIndex]}
             timeline_start={@props.course.timeline_start}
             timeline_end={@props.course.timeline_end}
             all_training_modules={@props.all_training_modules}
@@ -180,12 +180,12 @@ Timeline = React.createClass(
           />
         </div>
       )
-      i++
+      weekCalendarIndex++
 
     # If there are no weeks at all, put in a special placeholder week with the
     # emptyTimeline parameter
     if !@props.loading && @props.weeks.length is 0
-      no_weeks = (
+      noWeeks = (
         <EmptyWeek
           course={@props.course}
           index={1}
@@ -196,8 +196,8 @@ Timeline = React.createClass(
         />
       )
 
-    unless week_components.length > 0
-      wizard_link = <CourseLink to="/courses/#{@props.course?.slug}/timeline/wizard" className='button dark button--block timeline__add-assignment'>Add Assignment</CourseLink>
+    unless weekComponents.length > 0
+      wizardLink = <CourseLink to="/courses/#{@props.course?.slug}/timeline/wizard" className='button dark button--block timeline__add-assignment'>Add Assignment</CourseLink>
 
     controls = if @props.reorderable || @props?.editable_block_ids.length > 1 then (
       <div>
@@ -212,27 +212,27 @@ Timeline = React.createClass(
 
     if @props.edit_permissions
       if @props.reorderable
-        reorderable_controls = (
+        reorderableControls = (
           <div className="reorderable-controls">
             <h5>{I18n.t('timeline.arrange_timeline')}</h5>
             <p className="muted">{I18n.t('timeline.arrange_timeline_instructions')}</p>
           </div>
         )
       else if @props.editable_block_ids.length == 0
-        reorderable_controls = (
+        reorderableControls = (
           <div className="reorderable-controls">
             <button className="button border button--block" onClick={@props.enableReorderable}>Arrange Timeline</button>
           </div>
         )
 
-      edit_course_dates = (
-        <CourseLink className="week-nav__action week-nav__link" to="/courses/#{@props.course?.slug}/timeline/dates">{CourseUtils.i18n('edit_course_dates', @props.course.string_prefix)}</CourseLink>
+      editCourseDates = (
+        <CourseLink className="week-nav__action week-nav__link" to="/courses/#{@props.course?.slug}/timeline/dates">{CourseUtils.i18n('editCourseDates', @props.course.string_prefix)}</CourseLink>
       )
 
       start = moment(@props.course.timeline_start)
       end = moment(@props.course.timeline_end)
-      timeline_full = (moment(end - start).weeks()) - week_components.length <= 0
-      add_week_link = if timeline_full then (
+      timeline_full = (moment(end - start).weeks()) - weekComponents.length <= 0
+      addWeekLink = if timeline_full then (
         <li>
           <label className='week-nav__action week-nav__link disabled tooltip-trigger'>
             {I18n.t('timeline.add_week')}
@@ -247,7 +247,7 @@ Timeline = React.createClass(
         </li>
       )
 
-    week_nav = week_components.map (week, i) => (
+    weekNav = weekComponents.map (week, i) => (
       className = 'week-nav__item'
       className += ' is-current' if i == 0
 
@@ -262,16 +262,16 @@ Timeline = React.createClass(
       <div className="timeline__week-nav">
         <Affix offset={100}>
           <section className="timeline-ctas float-container">
-            <span>{wizard_link}</span>
-            {reorderable_controls}
+            <span>{wizardLink}</span>
+            {reorderableControls}
             {controls}
           </section>
           <div className="panel">
             <ol>
-              {week_nav}
-              {add_week_link}
+              {weekNav}
+              {addWeekLink}
             </ol>
-            {edit_course_dates}
+            {editCourseDates}
             <a className="week-nav__action week-nav__link" href="#grading">Grading</a>
           </div>
         </Affix>
@@ -286,8 +286,8 @@ Timeline = React.createClass(
       <div className="timeline__content">
         <ul className="list-unstyled timeline__weeks">
           {tooManyWeeksWarning}
-          {week_components}
-          {no_weeks}
+          {weekComponents}
+          {noWeeks}
         </ul>
         {sidebar}
       </div>
