@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+
 require "#{Rails.root}/lib/replica"
 require "#{Rails.root}/lib/duplicate_article_deleter"
 require "#{Rails.root}/lib/importers/article_importer"
@@ -22,24 +23,29 @@ class RevisionImporter
   # Given a Course, get new revisions for the users in that course.
   def new_revisions_for_course
     results = []
-    start = course_start_date
 
     # Users with no revisions are considered "new". For them, we search for
     # revisions starting from the beginning of the course, in case they were
     # just added to the course.
-    new_users = users_with_no_revisions
-    results += get_revisions(new_users, start, end_of_update_period) unless new_users.empty?
+    @new_users = users_with_no_revisions
+    results += revisions_from_new_users unless @new_users.empty?
 
     # For users who already have revisions during the course, we assume that
     # previous updates imported their revisions prior to the latest revisions.
     # We only need to import revisions
-    old_users = @course.students - new_users
-    unless old_users.empty?
-      first_rev = latest_revision_of_course
-      start = first_rev.date.strftime('%Y%m%d') unless first_rev.blank?
-      results += get_revisions(old_users, start, end_of_update_period)
-    end
+    @old_users = @course.students - @new_users
+    results += revisions_from_old_users unless @old_users.empty?
     results
+  end
+
+  def revisions_from_new_users
+    get_revisions(@new_users, course_start_date, end_of_update_period)
+  end
+
+  def revisions_from_old_users
+    first_rev = latest_revision_of_course
+    start = first_rev.blank? ? course_start_date : first_rev.date.strftime('%Y%m%d')
+    get_revisions(@old_users, start, end_of_update_period)
   end
 
   def import_revisions(data)
@@ -62,10 +68,10 @@ class RevisionImporter
     @course.start.strftime('%Y%m%d')
   end
 
-  DAYS_TO_IMPORT_AFTER_COURSE_END = 30
+  # pull all revisions until present, so that we have any after-the-end revisions
+  # included for calculating retention when a past course gets updated.
   def end_of_update_period
-    # Add one day so that the query does not end at the beginning of the last day.
-    (@course.end + 1.day + DAYS_TO_IMPORT_AFTER_COURSE_END.days).strftime('%Y%m%d')
+    2.days.from_now.strftime('%Y%m%d')
   end
 
   def users_with_no_revisions
